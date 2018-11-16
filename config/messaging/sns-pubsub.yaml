@@ -1,0 +1,8 @@
+template_path: templates/sns-pubsub.j2
+parameters:
+  TopicName: mytopic
+sceptre_user_data:
+  Queues:
+    - MyQueue1
+    - MyQueue3
+    - MyQueue4

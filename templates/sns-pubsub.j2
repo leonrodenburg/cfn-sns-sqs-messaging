@@ -1,0 +1,58 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "SNS topic with one or more subscribing SQS queues"
+
+Parameters:
+  TopicName:
+    Type: String
+    AllowedPattern: "^[a-zA-Z0-9\\-]{1,30}$"
+
+Resources:
+  Topic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Ref TopicName
+      Subscription:
+        {% for name in sceptre_user_data.Queues %}
+        -
+          Endpoint: !GetAtt Queue{{ name }}.Arn
+          Protocol: "sqs"
+        {% endfor %}
+
+  {% for name in sceptre_user_data.Queues %}
+  Queue{{ name }}:
+    Type: AWS::SQS::Queue
+  {% endfor %}
+
+  QueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        {% for name in sceptre_user_data.Queues %}
+        - !Ref Queue{{ name }}
+        {% endfor %}
+      PolicyDocument:
+        Version: "2012-10-17"
+        Id: "SnsQueuePolicyDocument"
+        Statement:
+          - Sid: "1"
+            Effect: "Allow"
+            Principal: "*"
+            Action:
+              - "sqs:SendMessage"
+            Resource: "*"
+            Condition:
+              ArnEquals:
+                aws:SourceArn:
+                  Ref: Topic
+
+Outputs:
+  Topic:
+    Value: !Ref Topic
+    Export:
+      Name: !Sub "topic-${TopicName}"
+  {% for name in sceptre_user_data.Queues %}
+  Queue{{ name }}:
+    Value: !Ref Queue{{ name }}
+    Export:
+      Name: !Sub "queue-{{ name }}"
+  {% endfor %}
