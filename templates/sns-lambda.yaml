@@ -1,0 +1,62 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Lambda that receives and logs SNS messages"
+
+Parameters:
+  TopicArn:
+    Type: String
+
+Resources:
+  Lambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: Simple lambda that receives and logs SNS messages
+      Runtime: python3.6
+      Handler: index.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          import json
+
+          def handler(event, context):
+            print('Received SNS message:')
+            print(json.dumps(event))
+            return {
+              'success': True
+            }
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  LambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref Lambda
+      Principal: sns.amazonaws.com
+      SourceArn: !Ref TopicArn
+
+  LambdaSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Endpoint: !GetAtt Lambda.Arn
+      Protocol: lambda
+      TopicArn: !Ref TopicArn
+
+Outputs:
+  LambdaArn:
+    Description: ARN for lambda that processes SNS messages
+    Value: !GetAtt Lambda.Arn
+    Export:
+      Name: LambdaArn

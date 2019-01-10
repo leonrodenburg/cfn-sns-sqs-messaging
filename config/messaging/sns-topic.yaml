@@ -1,0 +1,3 @@
+template_path: templates/sns-topic.yaml
+parameters:
+  TopicName: mytopic

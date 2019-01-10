@@ -1,0 +1,14 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "HTTP subscription for SNS"
+
+Parameters:
+  TopicArn:
+    Type: String
+
+Resources:
+  HttpSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Endpoint: https://cfn-sns-http-subscription.now.sh
+      Protocol: https
+      TopicArn: !Ref TopicArn

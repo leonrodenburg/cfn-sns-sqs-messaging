@@ -2,25 +2,27 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: "SNS topic with one or more subscribing SQS queues"
 
 Parameters:
-  TopicName:
+  TopicArn:
     Type: String
-    AllowedPattern: "^[a-zA-Z0-9\\-]{1,30}$"
 
 Resources:
-  Topic:
-    Type: AWS::SNS::Topic
-    Properties:
-      TopicName: !Ref TopicName
-      Subscription:
-        {% for name in sceptre_user_data.Queues %}
-        -
-          Endpoint: !GetAtt Queue{{ name }}.Arn
-          Protocol: "sqs"
-        {% endfor %}
-
   {% for name in sceptre_user_data.Queues %}
   Queue{{ name }}:
     Type: AWS::SQS::Queue
+    Properties:
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt Queue{{ name }}DLQ.Arn
+        maxReceiveCount: 2
+
+  Queue{{ name }}DLQ:
+    Type: AWS::SQS::Queue
+
+  Queue{{ name }}Subscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Endpoint: !GetAtt Queue{{ name }}.Arn
+      Protocol: sqs
+      TopicArn: !Ref TopicArn
   {% endfor %}
 
   QueuePolicy:
@@ -43,16 +45,10 @@ Resources:
             Condition:
               ArnEquals:
                 aws:SourceArn:
-                  Ref: Topic
+                  Ref: TopicArn
 
 Outputs:
-  Topic:
-    Value: !Ref Topic
-    Export:
-      Name: !Sub "topic-${TopicName}"
   {% for name in sceptre_user_data.Queues %}
   Queue{{ name }}:
     Value: !Ref Queue{{ name }}
-    Export:
-      Name: !Sub "queue-{{ name }}"
   {% endfor %}

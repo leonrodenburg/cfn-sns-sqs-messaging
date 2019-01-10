@@ -1,0 +1,17 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Basic SNS topic"
+
+Parameters:
+  TopicName:
+    Type: String
+    AllowedPattern: "^[a-zA-Z0-9\\-]{1,30}$"
+
+Resources:
+  Topic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Ref TopicName
+
+Outputs:
+  TopicArn:
+    Value: !Ref Topic
